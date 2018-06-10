@@ -10,15 +10,21 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     ListView listView;
     TextView statusTextView;
     Button searchButton;
+    ArrayList<String> bluetoothDevices = new ArrayList<String>();
+    ArrayList<String> addresses = new ArrayList<String>();
+    ArrayAdapter arrayAdapter;
 
     BluetoothAdapter bluetoothAdapter;
 
@@ -35,8 +41,39 @@ public class MainActivity extends AppCompatActivity {
                 statusTextView.setText("Finished!");
                 searchButton.setEnabled(true);
 
-            }
+            } else if (BluetoothDevice.ACTION_FOUND.equals(action)) { // Found a bluetooth device
 
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                String name = device.getName();
+                String address = device.getAddress();
+
+                // The more negative the number is, the stronger the connection is
+                String rssi = Integer.toString(intent.
+                        getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE));
+
+//                Log.i("Device Found", "Name: "
+//                        + name + "Address: " + address + "RSSI: " + rssi);
+
+                if (addresses.contains(address)) {
+
+                    addresses.add(address);
+
+                    String deviceString = "";
+
+                    // Short-circuit
+                    if (name == null || name.equals("")) {
+
+                        // dBm is unit for RSSI
+                        deviceString = address + " - " + rssi + "dBm";
+
+                    } else {
+                        deviceString = name + " - " + rssi + "dBm";
+                    }
+
+                    bluetoothDevices.add(deviceString);
+                    arrayAdapter.notifyDataSetChanged();
+                }
+            }
         }
     };
 
@@ -45,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
         statusTextView.setText("Searching...");
         searchButton.setEnabled(false);
 
+        bluetoothDevices.clear(); // Clear for repeat searches
+        addresses.clear();
         bluetoothAdapter.startDiscovery(); // Requires manifest permission
 
     }
@@ -57,6 +96,11 @@ public class MainActivity extends AppCompatActivity {
         listView = findViewById(R.id.listView);
         statusTextView = findViewById(R.id.statusTextView);
         searchButton = findViewById(R.id.searchButton);
+
+        arrayAdapter = new ArrayAdapter(this,
+                android.R.layout.simple_list_item_1, bluetoothDevices);
+
+        listView.setAdapter(arrayAdapter);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter(); // Allows us to work w/ bluetooth
 
